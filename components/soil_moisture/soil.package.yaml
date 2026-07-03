@@ -1,0 +1,30 @@
+substitutions:
+  sda_pin: GPIO21
+  scl_pin: GPIO22
+  soil_update_interval: 30s
+
+external_components:
+- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.0.0
+  components: [soil_moisture]
+
+i2c:
+  sda: ${sda_pin}
+  scl: ${scl_pin}
+  frequency: 100kHz
+
+sensor:
+- platform: soil_moisture
+  address: 0x44
+  update_interval: ${soil_update_interval}
+  humidity_0:    {name: "Soil H0"}
+  humidity_1:    {name: "Soil H1"}
+  humidity_2:    {name: "Soil H2"}
+  humidity_3:    {name: "Soil H3"}
+  temperature_0: {name: "Soil T0"}
+  temperature_1: {name: "Soil T1"}
+  temperature_2: {name: "Soil T2"}
+  temperature_3: {name: "Soil T3"}
+  frequency_0: {name: "Soil F0", filters: [median: {window_size: 5, send_every: 5}]}
+  frequency_1: {name: "Soil F1", filters: [median: {window_size: 5, send_every: 5}]}
+  frequency_2: {name: "Soil F2", filters: [median: {window_size: 5, send_every: 5}]}
+  frequency_3: {name: "Soil F3", filters: [median: {window_size: 5, send_every: 5}]}
