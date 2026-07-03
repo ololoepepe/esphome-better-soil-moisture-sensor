@@ -1,5 +1,11 @@
-# Example configuration for the Better Soil Moisture Sensor
-# (custom STM32-based 4-segment capacitive I2C sensor).
+# Advanced / manual example: wiring up the soil_moisture platform directly.
+#
+# For most users the package is simpler — see README (Quick start):
+#   packages:
+#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.0
+#
+# Use this direct form when you need full control: sharing an existing I2C bus,
+# exposing only some segments, or custom entity names.
 
 esphome:
   name: soil-sensor
@@ -18,11 +24,9 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
 
-# Pull the component straight from GitHub. Pin a released tag (e.g. @v1.0.0)
-# for production; @main tracks the latest changes.
 external_components:
-  - source: github://ololoepepe/esphome-better-soil-moisture-sensor@main
-    components: [soil_moisture]
+- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.0
+  components: [soil_moisture]
 
 i2c:
   sda: GPIO21
@@ -31,29 +35,29 @@ i2c:
   scan: true
 
 sensor:
-  - platform: soil_moisture
-    address: 0x44
-    update_interval: 30s
+- platform: soil_moisture
+  address: 0x44
+  update_interval: 30s
 
-    # Segment 0..3. Any field is optional — declare only what you need.
-    humidity_0:    {name: "Soil H0"}
-    humidity_1:    {name: "Soil H1"}
-    humidity_2:    {name: "Soil H2"}
-    humidity_3:    {name: "Soil H3"}
+  # Segment 0..3. Any field is optional — declare only what you need.
+  humidity_0:    {name: "Soil H0"}
+  humidity_1:    {name: "Soil H1"}
+  humidity_2:    {name: "Soil H2"}
+  humidity_3:    {name: "Soil H3"}
 
-    temperature_0: {name: "Soil T0"}
-    temperature_1: {name: "Soil T1"}
-    temperature_2: {name: "Soil T2"}
-    temperature_3: {name: "Soil T3"}
+  temperature_0: {name: "Soil T0"}
+  temperature_1: {name: "Soil T1"}
+  temperature_2: {name: "Soil T2"}
+  temperature_3: {name: "Soil T3"}
 
-    # Raw oscillator counts — handy for calibration/diagnostics.
-    frequency_0: {name: "Soil F0", filters: [median: {window_size: 5, send_every: 5}]}
-    frequency_1: {name: "Soil F1", filters: [median: {window_size: 5, send_every: 5}]}
-    frequency_2: {name: "Soil F2", filters: [median: {window_size: 5, send_every: 5}]}
-    frequency_3: {name: "Soil F3", filters: [median: {window_size: 5, send_every: 5}]}
+  # Raw oscillator counts — handy for calibration/diagnostics.
+  frequency_0: {name: "Soil F0", filters: [median: {window_size: 5, send_every: 5}]}
+  frequency_1: {name: "Soil F1", filters: [median: {window_size: 5, send_every: 5}]}
+  frequency_2: {name: "Soil F2", filters: [median: {window_size: 5, send_every: 5}]}
+  frequency_3: {name: "Soil F3", filters: [median: {window_size: 5, send_every: 5}]}
 
-    # Raw thermistor ADC (0..4095) — optional diagnostics.
-    # adc_0: {name: "Soil ADC0"}
-    # adc_1: {name: "Soil ADC1"}
-    # adc_2: {name: "Soil ADC2"}
-    # adc_3: {name: "Soil ADC3"}
+  # Raw thermistor ADC (0..4095) — optional diagnostics.
+  # adc_0: {name: "Soil ADC0"}
+  # adc_1: {name: "Soil ADC1"}
+  # adc_2: {name: "Soil ADC2"}
+  # adc_3: {name: "Soil ADC3"}

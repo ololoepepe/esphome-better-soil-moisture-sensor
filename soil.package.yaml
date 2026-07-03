@@ -1,30 +1,47 @@
+# Ready-made package for the Better Soil Moisture Sensor.
+#
+# Pulls in the component, sets up the I2C bus and all 12 sensor entities.
+# End users include this with a single line and only override what they need
+# via bsm_* substitutions.
+#
+#   packages:
+#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.0
+#
+# All substitutions are namespaced (bsm_) to avoid clashing with other
+# packages when merged into the user's configuration.
+
 substitutions:
-  sda_pin: GPIO21
-  scl_pin: GPIO22
-  soil_update_interval: 30s
+  bsm_sda_pin: GPIO21
+  bsm_scl_pin: GPIO22
+  bsm_i2c_id: bsm_i2c
+  bsm_address: "0x44"
+  bsm_update_interval: 30s
+  bsm_name_prefix: Soil
 
 external_components:
-- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.0.0
+- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.0
   components: [soil_moisture]
 
 i2c:
-  sda: ${sda_pin}
-  scl: ${scl_pin}
+- id: ${bsm_i2c_id}
+  sda: ${bsm_sda_pin}
+  scl: ${bsm_scl_pin}
   frequency: 100kHz
 
 sensor:
 - platform: soil_moisture
-  address: 0x44
-  update_interval: ${soil_update_interval}
-  humidity_0:    {name: "Soil H0"}
-  humidity_1:    {name: "Soil H1"}
-  humidity_2:    {name: "Soil H2"}
-  humidity_3:    {name: "Soil H3"}
-  temperature_0: {name: "Soil T0"}
-  temperature_1: {name: "Soil T1"}
-  temperature_2: {name: "Soil T2"}
-  temperature_3: {name: "Soil T3"}
-  frequency_0: {name: "Soil F0", filters: [median: {window_size: 5, send_every: 5}]}
-  frequency_1: {name: "Soil F1", filters: [median: {window_size: 5, send_every: 5}]}
-  frequency_2: {name: "Soil F2", filters: [median: {window_size: 5, send_every: 5}]}
-  frequency_3: {name: "Soil F3", filters: [median: {window_size: 5, send_every: 5}]}
+  i2c_id: ${bsm_i2c_id}
+  address: ${bsm_address}
+  update_interval: ${bsm_update_interval}
+  humidity_0:    {name: "${bsm_name_prefix} H0"}
+  humidity_1:    {name: "${bsm_name_prefix} H1"}
+  humidity_2:    {name: "${bsm_name_prefix} H2"}
+  humidity_3:    {name: "${bsm_name_prefix} H3"}
+  temperature_0: {name: "${bsm_name_prefix} T0"}
+  temperature_1: {name: "${bsm_name_prefix} T1"}
+  temperature_2: {name: "${bsm_name_prefix} T2"}
+  temperature_3: {name: "${bsm_name_prefix} T3"}
+  frequency_0: {name: "${bsm_name_prefix} F0", filters: [median: {window_size: 5, send_every: 5}]}
+  frequency_1: {name: "${bsm_name_prefix} F1", filters: [median: {window_size: 5, send_every: 5}]}
+  frequency_2: {name: "${bsm_name_prefix} F2", filters: [median: {window_size: 5, send_every: 5}]}
+  frequency_3: {name: "${bsm_name_prefix} F3", filters: [median: {window_size: 5, send_every: 5}]}
