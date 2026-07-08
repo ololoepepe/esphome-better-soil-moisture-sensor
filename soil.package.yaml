@@ -5,10 +5,18 @@
 # via bsm_* substitutions.
 #
 #   packages:
-#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.3
+#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.2
 #
 # All substitutions are namespaced (bsm_) to avoid clashing with other
 # packages when merged into the user's configuration.
+#
+# This package does NOT touch the global logger. Log verbosity is the device
+# owner's call. The component logs under the `soil_moisture` tag (readings at
+# INFO, genuine faults at ERROR); to tune just this component without affecting
+# the rest of the device, add to your own config:
+#     logger:
+#       logs:
+#         soil_moisture: WARN
 
 substitutions:
   bsm_id: bsm_soil
@@ -27,21 +35,9 @@ substitutions:
   bsm_retry_count: "10"
   bsm_retry_interval: 30ms
 
-  # Device log verbosity. This is a COMPILE-TIME ceiling: messages above it are
-  # removed from the firmware, so raising it later needs a reflash. Sensor data
-  # reaches Home Assistant over the API regardless of this setting.
-  #   ERROR (default) - quiet; only genuine faults (e.g. sensor unreachable).
-  #   INFO            - adds one consolidated readings line per update.
-  #   DEBUG           - adds internals, incl. the expected transient IDF i2c
-  #                     timeouts during retries.
-  bsm_logger_level: ERROR
-
 external_components:
-- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.3
+- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.4
   components: [soil_moisture]
-
-logger:
-  level: ${bsm_logger_level}
 
 i2c:
 - id: ${bsm_i2c_id}

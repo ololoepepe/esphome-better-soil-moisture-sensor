@@ -2,7 +2,7 @@
 #
 # For most users the package is simpler — see README (Quick start):
 #   packages:
-#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.3
+#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.4
 #
 # Use this direct form when you need full control: sharing an existing I2C bus,
 # exposing only some segments, or custom entity names.
@@ -21,9 +21,10 @@ esp32:
     type: esp-idf
 
 logger:
-  # Compile-time ceiling. ERROR = quiet (data still goes to HA via API); INFO
-  # adds one readings line per update; DEBUG adds the transient IDF i2c timeouts.
-  level: ERROR
+  # Global level is your call. To quiet just this component without touching the
+  # rest of the device, override its tag (readings are INFO, faults are ERROR):
+  # logs:
+  #   soil_moisture: WARN
 api:
 ota:
   platform: esphome
@@ -33,7 +34,7 @@ wifi:
   password: !secret wifi_password
 
 external_components:
-- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.3
+- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.4
   components: [soil_moisture]
 
 i2c:

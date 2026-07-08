@@ -27,7 +27,7 @@ api:
 ota: {platform: esphome}
 
 packages:
-  soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.3
+  soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.4
 ```
 
 Override only what you need via `bsm_*` substitutions (all namespaced, so they
@@ -38,10 +38,9 @@ substitutions:
   bsm_sda_pin: GPIO16
   bsm_scl_pin: GPIO17
   bsm_name_prefix: "Bed 1"
-  bsm_logger_level: INFO       # show a readings line per update
 
 packages:
-  soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.3
+  soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.4
 ```
 
 | Substitution           | Default    | Description                                   |
@@ -55,9 +54,8 @@ packages:
 | `bsm_name_prefix`      | `Soil`     | Prefix for all 12 entity names.               |
 | `bsm_retry_count`      | `10`       | Read attempts before giving up.               |
 | `bsm_retry_interval`   | `30ms`     | Delay between attempts.                        |
-| `bsm_logger_level`     | `ERROR`    | Device log verbosity (see Logging).           |
 
-> Pin a released tag (`@v1.1.3`) rather than `@main` so a later change to this
+> Pin a released tag (`@v1.1.4`) rather than `@main` so a later change to this
 > repo never silently alters deployed devices.
 
 ## Event-driven / low-power (wake-measure-sleep)
@@ -71,7 +69,7 @@ substitutions:
   bsm_update_interval: never
 
 packages:
-  soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.3
+  soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.4
 
 esphome:
   on_boot:
@@ -105,19 +103,25 @@ failed for that cycle.
 
 ## Logging
 
-`bsm_logger_level` (package) / `logger: level:` (direct) is a **compile-time
-ceiling** — messages above it are stripped from the firmware, so raising it
-needs a reflash. Sensor values reach Home Assistant over the API regardless of
-log level; these settings only affect the console/UART log.
+This package does not set the global log level — that stays your decision. The
+component logs under its own `soil_moisture` tag: successful reads emit one
+consolidated readings line at **INFO**, and a genuine fault (sensor unreachable
+after all retries) at **ERROR**. Sensor values reach Home Assistant over the API
+regardless of log level; the log only matters for console/UART debugging.
 
-| Level          | What you see in the log                                    |
-| -------------- | --------------------------------------------------------- |
-| `ERROR` (def.) | Only genuine faults (e.g. sensor unreachable after retries). |
-| `INFO`         | + one consolidated readings line per update.              |
-| `DEBUG`        | + internals, incl. the expected transient IDF i2c timeouts during retries. |
+To change the verbosity of *just this component* without affecting the rest of
+the device, override its tag:
 
-The expected per-attempt "I2C hardware timeout" messages come from ESP-IDF and
-sit at DEBUG, so they never appear unless you explicitly build at DEBUG.
+```yaml
+logger:
+  logs:
+    soil_moisture: WARN     # silence the per-update readings line, keep faults
+```
+
+Note `logs:` is a filter under the global `logger: level:` compile-time ceiling
+(default `DEBUG`): a tag cannot be made more verbose than the global level. The
+expected per-attempt "I2C hardware timeout" messages come from ESP-IDF (tag
+`esp-idf`) and sit at DEBUG, so they only appear if the global level is DEBUG.
 
 ## Advanced: use the component directly
 
