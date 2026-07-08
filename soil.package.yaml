@@ -5,7 +5,7 @@
 # via bsm_* substitutions.
 #
 #   packages:
-#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.0
+#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.2
 #
 # All substitutions are namespaced (bsm_) to avoid clashing with other
 # packages when merged into the user's configuration.
@@ -17,27 +17,43 @@ substitutions:
   bsm_address: "0x44"
   bsm_update_interval: 30s
   bsm_name_prefix: Soil
-  # The sensor MCU disables IRQs while sampling (~8-12 ms per segment), stretching
-  # SCL. Give the master room to wait it out instead of timing out. ESP-IDF caps
-  # this at 13 ms (higher is clamped), which is the practical max.
-  bsm_i2c_timeout: 13ms
+
+  # The sensor MCU briefly disables IRQs while sampling and is unreachable for
+  # ~25-34 ms per segment; between full cycles it idles ~500 ms. A failed read is
+  # retried (non-blocking) until it lands in that idle window, so a wake-measure-
+  # sleep cycle always gets fresh data and never a silently skipped reading.
+  # count x interval must exceed one full MCU measurement cycle (~130 ms) and
+  # stay under the idle gap. Defaults (10 x 30 ms = 300 ms) satisfy both.
+  bsm_retry_count: "10"
+  bsm_retry_interval: 30ms
+
+  # Verbosity of routine per-update sensor state logs. DEBUG (default) prints
+  # every published value; set to WARN to silence that spam while keeping the
+  # component's own warnings/errors. NOTE: this applies to the `sensor` log tag,
+  # so it affects every sensor's state logs on this device, not just this one.
+  bsm_log_level: DEBUG
 
 external_components:
-- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.0
+- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.2
   components: [soil_moisture]
+
+logger:
+  logs:
+    sensor: ${bsm_log_level}
 
 i2c:
 - id: ${bsm_i2c_id}
   sda: ${bsm_sda_pin}
   scl: ${bsm_scl_pin}
   frequency: 100kHz
-  timeout: ${bsm_i2c_timeout}
 
 sensor:
 - platform: soil_moisture
   i2c_id: ${bsm_i2c_id}
   address: ${bsm_address}
   update_interval: ${bsm_update_interval}
+  retry_count: ${bsm_retry_count}
+  retry_interval: ${bsm_retry_interval}
   humidity_0:    {name: "${bsm_name_prefix} H0"}
   humidity_1:    {name: "${bsm_name_prefix} H1"}
   humidity_2:    {name: "${bsm_name_prefix} H2"}

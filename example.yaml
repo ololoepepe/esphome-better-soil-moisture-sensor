@@ -2,7 +2,7 @@
 #
 # For most users the package is simpler — see README (Quick start):
 #   packages:
-#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.0
+#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.2
 #
 # Use this direct form when you need full control: sharing an existing I2C bus,
 # exposing only some segments, or custom entity names.
@@ -16,6 +16,9 @@ esp32:
     type: esp-idf
 
 logger:
+  # Silence routine per-update sensor state spam, keep warnings/errors:
+  # logs:
+  #   sensor: WARN
 api:
 ota:
   platform: esphome
@@ -25,7 +28,7 @@ wifi:
   password: !secret wifi_password
 
 external_components:
-- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.0
+- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.2
   components: [soil_moisture]
 
 i2c:
@@ -38,6 +41,12 @@ sensor:
 - platform: soil_moisture
   address: 0x44
   update_interval: 30s
+
+  # A failed read (sensor MCU busy sampling) is retried, non-blocking, until it
+  # lands in the MCU's idle window — so every cycle yields fresh data. Defaults
+  # shown; count x interval must exceed one MCU measurement cycle (~130 ms).
+  retry_count: 10
+  retry_interval: 30ms
 
   # Segment 0..3. Any field is optional — declare only what you need.
   humidity_0:    {name: "Soil H0"}
@@ -58,6 +67,3 @@ sensor:
 
   # Raw thermistor ADC (0..4095) — optional diagnostics.
   # adc_0: {name: "Soil ADC0"}
-  # adc_1: {name: "Soil ADC1"}
-  # adc_2: {name: "Soil ADC2"}
-  # adc_3: {name: "Soil ADC3"}

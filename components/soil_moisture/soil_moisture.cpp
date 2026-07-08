@@ -14,14 +14,33 @@ static const char *const TAG = "soil_moisture";
 static const uint8_t FRAME_LEN = 40;
 
 void SoilMoisture::update() {
-  uint8_t b[FRAME_LEN];
-  // Plain read (no register pointer): the STM32 slave transmits the whole struct.
-  if (this->read(b, FRAME_LEN) != i2c::ERROR_OK) {
-    ESP_LOGW(TAG, "I2C read failed (slave busy in acquisition window?)");
-    this->status_set_warning();
+  // Start a read, retrying on I2C failure. The sensor MCU disables IRQs while
+  // sampling (~25-34 ms per segment) and stretches SCL past the ESP-IDF 13 ms
+  // cap, so a read landing there fails. Between full measurement cycles the MCU
+  // idles ~500 ms. Retrying with an interval > one segment window, across a span
+  // > one full MCU cycle, is guaranteed to hit that idle window -> fresh data,
+  // never a silently skipped reading. Retries are non-blocking (set_timeout).
+  this->attempt_(this->retry_count_);
+}
+
+void SoilMoisture::attempt_(uint8_t tries_left) {
+  if (this->try_read_()) {
+    this->status_clear_warning();
     return;
   }
-  this->status_clear_warning();
+  if (tries_left > 1) {
+    this->set_timeout("bsm_retry", this->retry_interval_ms_,
+                      [this, tries_left]() { this->attempt_(tries_left - 1); });
+  } else {
+    ESP_LOGW(TAG, "I2C read failed after %u attempts", this->retry_count_);
+    this->status_set_warning();
+  }
+}
+
+bool SoilMoisture::try_read_() {
+  uint8_t b[FRAME_LEN];
+  if (this->read(b, FRAME_LEN) != i2c::ERROR_OK)
+    return false;
 
   auto i16 = [&](uint8_t o) -> int16_t {
     return (int16_t) ((uint16_t) b[o] | ((uint16_t) b[o + 1] << 8));
@@ -44,12 +63,14 @@ void SoilMoisture::update() {
     if (this->adc_[i] != nullptr)
       this->adc_[i]->publish_state((float) u16(32 + 2 * i));         // raw ADC
   }
+  return true;
 }
 
 void SoilMoisture::dump_config() {
   ESP_LOGCONFIG(TAG, "Better Soil Moisture Sensor (STM32 I2C slave):");
   LOG_I2C_DEVICE(this);
   LOG_UPDATE_INTERVAL(this);
+  ESP_LOGCONFIG(TAG, "  Retries: %u x %u ms", this->retry_count_, this->retry_interval_ms_);
   for (uint8_t i = 0; i < 4; i++) {
     LOG_SENSOR("  ", "Humidity", this->humidity_[i]);
     LOG_SENSOR("  ", "Temperature", this->temperature_[i]);
