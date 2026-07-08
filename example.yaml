@@ -2,13 +2,18 @@
 #
 # For most users the package is simpler — see README (Quick start):
 #   packages:
-#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.2
+#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.3
 #
 # Use this direct form when you need full control: sharing an existing I2C bus,
 # exposing only some segments, or custom entity names.
 
 esphome:
   name: soil-sensor
+  # Event-driven read on startup (pairs with update_interval: never below):
+  # on_boot:
+  #   priority: -100
+  #   then:
+  #     - component.update: bsm_soil
 
 esp32:
   board: esp32dev
@@ -16,9 +21,9 @@ esp32:
     type: esp-idf
 
 logger:
-  # Silence routine per-update sensor state spam, keep warnings/errors:
-  # logs:
-  #   sensor: WARN
+  # Compile-time ceiling. ERROR = quiet (data still goes to HA via API); INFO
+  # adds one readings line per update; DEBUG adds the transient IDF i2c timeouts.
+  level: ERROR
 api:
 ota:
   platform: esphome
@@ -28,7 +33,7 @@ wifi:
   password: !secret wifi_password
 
 external_components:
-- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.2
+- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.3
   components: [soil_moisture]
 
 i2c:
@@ -39,8 +44,9 @@ i2c:
 
 sensor:
 - platform: soil_moisture
+  id: bsm_soil
   address: 0x44
-  update_interval: 30s
+  update_interval: 30s      # or `never` for purely event-driven reads
 
   # A failed read (sensor MCU busy sampling) is retried, non-blocking, until it
   # lands in the MCU's idle window — so every cycle yields fresh data. Defaults

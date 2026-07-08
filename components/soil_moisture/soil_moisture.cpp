@@ -32,7 +32,10 @@ void SoilMoisture::attempt_(uint8_t tries_left) {
     this->set_timeout("bsm_retry", this->retry_interval_ms_,
                       [this, tries_left]() { this->attempt_(tries_left - 1); });
   } else {
-    ESP_LOGW(TAG, "I2C read failed after %u attempts", this->retry_count_);
+    // All retries exhausted: the sensor is genuinely unreachable. This is a real
+    // fault (unlike the expected per-attempt IDF timeouts, which are DEBUG), so
+    // log it at ERROR — visible even at the quiet default log level.
+    ESP_LOGE(TAG, "I2C read failed after %u attempts", this->retry_count_);
     this->status_set_warning();
   }
 }
@@ -53,16 +56,33 @@ bool SoilMoisture::try_read_() {
            ((uint32_t) b[o + 3] << 24);
   };
 
+  float hum[4], tmp[4];
+  uint32_t frq[4];
+  uint16_t adc[4];
+  for (uint8_t i = 0; i < 4; i++) {
+    hum[i] = i16(0 + 2 * i) / 10.0f;   // per-mille -> %
+    tmp[i] = i16(8 + 2 * i) / 10.0f;   // deci-degC -> C
+    frq[i] = u32(16 + 4 * i);
+    adc[i] = u16(32 + 2 * i);
+  }
+
   for (uint8_t i = 0; i < 4; i++) {
     if (this->humidity_[i] != nullptr)
-      this->humidity_[i]->publish_state(i16(0 + 2 * i) / 10.0f);     // per-mille -> %
+      this->humidity_[i]->publish_state(hum[i]);
     if (this->temperature_[i] != nullptr)
-      this->temperature_[i]->publish_state(i16(8 + 2 * i) / 10.0f);  // deci-degC -> C
+      this->temperature_[i]->publish_state(tmp[i]);
     if (this->frequency_[i] != nullptr)
-      this->frequency_[i]->publish_state((float) u32(16 + 4 * i));   // raw count
+      this->frequency_[i]->publish_state((float) frq[i]);
     if (this->adc_[i] != nullptr)
-      this->adc_[i]->publish_state((float) u16(32 + 2 * i));         // raw ADC
+      this->adc_[i]->publish_state((float) adc[i]);
   }
+
+  // Consolidated data line at INFO under our own tag (the core per-sensor logs
+  // are DEBUG). Hidden at the default quiet level; the data still reaches Home
+  // Assistant over the API regardless of log verbosity.
+  ESP_LOGI(TAG, "H %.1f/%.1f/%.1f/%.1f %%  T %.1f/%.1f/%.1f/%.1f C  F %u/%u/%u/%u",
+           hum[0], hum[1], hum[2], hum[3], tmp[0], tmp[1], tmp[2], tmp[3],
+           (unsigned) frq[0], (unsigned) frq[1], (unsigned) frq[2], (unsigned) frq[3]);
   return true;
 }
 

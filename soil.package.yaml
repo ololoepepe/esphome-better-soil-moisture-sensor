@@ -5,41 +5,43 @@
 # via bsm_* substitutions.
 #
 #   packages:
-#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.2
+#     soil: github://ololoepepe/esphome-better-soil-moisture-sensor/soil.package.yaml@v1.1.3
 #
 # All substitutions are namespaced (bsm_) to avoid clashing with other
 # packages when merged into the user's configuration.
 
 substitutions:
+  bsm_id: bsm_soil
   bsm_sda_pin: GPIO21
   bsm_scl_pin: GPIO22
   bsm_i2c_id: bsm_i2c
   bsm_address: "0x44"
+  # Polling interval. Set to `never` for event-driven use (wake-measure-sleep):
+  # trigger a read yourself via `component.update: bsm_soil` from on_boot / an
+  # automation, so nothing is read on a background timer.
   bsm_update_interval: 30s
   bsm_name_prefix: Soil
 
-  # The sensor MCU briefly disables IRQs while sampling and is unreachable for
-  # ~25-34 ms per segment; between full cycles it idles ~500 ms. A failed read is
-  # retried (non-blocking) until it lands in that idle window, so a wake-measure-
-  # sleep cycle always gets fresh data and never a silently skipped reading.
-  # count x interval must exceed one full MCU measurement cycle (~130 ms) and
-  # stay under the idle gap. Defaults (10 x 30 ms = 300 ms) satisfy both.
+  # See README. count x interval must exceed one full MCU measurement cycle
+  # (~130 ms) and stay under the ~500 ms idle gap. Defaults: 10 x 30 ms = 300 ms.
   bsm_retry_count: "10"
   bsm_retry_interval: 30ms
 
-  # Verbosity of routine per-update sensor state logs. DEBUG (default) prints
-  # every published value; set to WARN to silence that spam while keeping the
-  # component's own warnings/errors. NOTE: this applies to the `sensor` log tag,
-  # so it affects every sensor's state logs on this device, not just this one.
-  bsm_log_level: DEBUG
+  # Device log verbosity. This is a COMPILE-TIME ceiling: messages above it are
+  # removed from the firmware, so raising it later needs a reflash. Sensor data
+  # reaches Home Assistant over the API regardless of this setting.
+  #   ERROR (default) - quiet; only genuine faults (e.g. sensor unreachable).
+  #   INFO            - adds one consolidated readings line per update.
+  #   DEBUG           - adds internals, incl. the expected transient IDF i2c
+  #                     timeouts during retries.
+  bsm_logger_level: ERROR
 
 external_components:
-- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.2
+- source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.3
   components: [soil_moisture]
 
 logger:
-  logs:
-    sensor: ${bsm_log_level}
+  level: ${bsm_logger_level}
 
 i2c:
 - id: ${bsm_i2c_id}
@@ -49,6 +51,7 @@ i2c:
 
 sensor:
 - platform: soil_moisture
+  id: ${bsm_id}
   i2c_id: ${bsm_i2c_id}
   address: ${bsm_address}
   update_interval: ${bsm_update_interval}
