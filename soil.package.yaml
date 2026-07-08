@@ -17,6 +17,10 @@ substitutions:
   bsm_address: "0x44"
   bsm_update_interval: 30s
   bsm_name_prefix: Soil
+  # The sensor MCU disables IRQs while sampling (~8-12 ms per segment), stretching
+  # SCL. Give the master room to wait it out instead of timing out. ESP-IDF caps
+  # this at 13 ms (higher is clamped), which is the practical max.
+  bsm_i2c_timeout: 13ms
 
 external_components:
 - source: github://ololoepepe/esphome-better-soil-moisture-sensor@v1.1.0
@@ -27,6 +31,7 @@ i2c:
   sda: ${bsm_sda_pin}
   scl: ${bsm_scl_pin}
   frequency: 100kHz
+  timeout: ${bsm_i2c_timeout}
 
 sensor:
 - platform: soil_moisture
